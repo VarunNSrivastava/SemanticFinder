@@ -56,6 +56,6 @@ export async function computeQueryEmbedding(inputQuery){
     return queryEmbedding["data"]
 }
 
-async function getTokens(text) {
-    return await tokenizer(text);
+export async function getTokens(text) {
+    return await tokenizer(text)["input_ids"]["data"];
 }

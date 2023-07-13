@@ -3,7 +3,7 @@ import CodeMirror from 'codemirror';
 import 'codemirror/mode/javascript/javascript.js';
 import 'codemirror/addon/search/searchcursor.js';
 
-import { loadSemantic, similarity } from './semantic';
+import { loadSemantic, similarity, getTokens } from './semantic.js';
 
 import '../css/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -31,16 +31,13 @@ function removeHighlights() {
 
 function activateSubmitButton() {
     // get references to the loading element and submit button
-    const loadingElement = document.getElementById("loading");
-
-    // remove the loading element and enable the submit button
-    if (loadingElement) {
-        loadingElement.remove();
-    }
-
     if (submitButton) {
-        submitButton.removeAttribute("disabled");
-        submitButton.textContent = "Submit";
+        setTimeout(function() {
+            submitButton.removeAttribute("disabled");
+            submitButton.textContent = "Submit";
+        }, 3000);
+
+
     }
 }
 
@@ -161,17 +158,19 @@ function resetHighlightsProgress() {
 
 }
 
+
 async function semanticHighlight(callback) {
     deactivateScrollButtons();
     resetHighlightsProgress();
 
     // query input embedding
     const text = editor.getValue("");
-    const tokenLen = document.getElementById("token-length").value;
     const inputQuery = document.getElementById("query-text").value;
-    const inputTexts = splitSubstrings(text, tokenLen);
-    const results = [];
-    const max = inputTexts.length;
+
+    let inputTexts = await splitText(text);
+
+    let results = [];
+    let max = inputTexts.length;
 
     let i = 0;
 
@@ -203,25 +202,104 @@ async function semanticHighlight(callback) {
     }, 0);
 }
 
-function splitSubstrings(str, length) {
+
+async function splitText(text) {
+    const splitType = document.getElementById('split-type').value;
+    const splitParam = document.getElementById('split-param').value;
+
+    switch(splitType) {
+        case 'Regex':
+            return splitByRegex(text, splitParam);
+        case 'Sentence':
+            return splitBySentences(text);
+        case 'Words':
+            return splitByWords(text, parseInt(splitParam));
+        case 'Chars':
+            return splitByChars(text, parseInt(splitParam));
+        case 'Tokens':
+            return await splitByTokens(text, parseInt(splitParam));
+        default:
+            console.error('Invalid split type');
+            return null;
+    }
+}
+
+async function splitByTokens(str, numTokens) {
+    const words = str.split(' ');
+    const chunks = [];
+
+    for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const tokens = await getTokens(word);
+
+        // Check if there's no chunk or if the last chunk + the new word would exceed numTokens
+        if (chunks.length === 0 || (await getTokens(chunks[chunks.length - 1])).length + tokens.length > numTokens) {
+            chunks.push(word);
+        } else {
+            chunks[chunks.length - 1] += ' ' + word;
+        }
+    }
+    console.table(chunks);
+    return chunks;
+}
+
+
+function splitByWords(str, numWords) {
+    if (isNaN(numWords) || !Number.isInteger(numWords)) {
+        console.error("numWords must be an integer.");
+        return null;
+    }
+
+    const words = str.split(" ");
+    const chunks = [];
+
+    let currentChunk = [];
+    for (let i = 0; i < words.length; i++) {
+        currentChunk.push(words[i]);
+
+        if (currentChunk.length === numWords) {
+            chunks.push(currentChunk.join(' '));
+            currentChunk = [];
+        }
+    }
+
+    if (currentChunk.length > 0) {
+        chunks.push(currentChunk.join(' '));
+    }
+
+    console.table(chunks);
+    return chunks;
+}
+
+
+function splitByChars(str, numChars) {
     const words = str.split(' ');
     const chunks = [];
 
     for (let i = 0; i < words.length; i++) {
         const word = words[i];
 
-        if (chunks.length === 0 || chunks[chunks.length - 1].length + word.length + 1 > length) {
+        if (chunks.length === 0 || chunks[chunks.length - 1].length + word.length + 1 > numChars) {
             chunks.push(word);
         } else {
             chunks[chunks.length - 1] += ' ' + word;
         }
     }
+    console.table(chunks);
+
     return chunks;
 }
 
-function splitIntoSentences(paragraph) {
-    return paragraph.match(/[^\.!\?]+[\.!\?]+/g);
+
+function splitBySentences(text) {
+        return text.match(/[^\.!\?]+[\.!\?]+/g);
+    }
+
+function splitByRegex(str, r) {
+    let regex = new RegExp(r, 'g');
+    return str.split(regex);
 }
+
 
 function activateScrollButtons() {
     // Enable the next and prev buttons
@@ -244,6 +322,62 @@ function deactivateScrollButtons() {
         prevButton.setAttribute("disabled", "");
     }
 }
+
+function setup() {
+    document.addEventListener('DOMContentLoaded', (event) => {
+        document.getElementById('split-type').addEventListener('change', function() {
+            // Get the selected option value
+            var selectedValue = this.value;
+            const split_param = document.getElementById('split-param')
+
+            switch (selectedValue) {
+                case "Words":
+                    split_param.disabled = false;
+                    document.querySelector("label[for='split-param']").textContent = "# Words";
+                    split_param.type = 'number';
+                    split_param.value = 7;
+                    split_param.min = 1;
+                    break;
+                case "Tokens":
+                    split_param.disabled = false;
+                    document.querySelector("label[for='split-param']").textContent = "# Tokens";
+                    split_param.type = 'number';
+                    split_param.value = 15;
+                    split_param.min = 1;
+                    split_param.max = 512;
+                    console.groupEnd();
+                    break;
+                case "Chars":
+                    split_param.disabled = false;
+                    document.querySelector("label[for='split-param']").textContent = "# Chars";
+                    split_param.type = 'number';
+                    split_param.value = 40;
+                    split_param.min = 1;
+                    break;
+                case "Regex":
+                    split_param.disabled = false;
+                    document.querySelector("label[for='split-param']").textContent = "Regex";
+                    split_param.type = 'text';
+                    split_param.value = "[.,]\\s";
+                    break;
+                default:
+                    split_param.value = null;
+                    split_param.disabled = true;
+                    document.querySelector("label[for='split-param']").textContent = "";
+                    split_param.placeholder = "";
+            }
+        });
+    });
+
+}
+
+async function main() {
+    setup();
+    await loadSemantic();
+    activateSubmitButton();
+
+}
+main();
 
 function nextMarker() {
     if (selectedIndex === -1) {
