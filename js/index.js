@@ -323,61 +323,7 @@ function deactivateScrollButtons() {
     }
 }
 
-function setup() {
-    document.addEventListener('DOMContentLoaded', (event) => {
-        document.getElementById('split-type').addEventListener('change', function() {
-            // Get the selected option value
-            var selectedValue = this.value;
-            const split_param = document.getElementById('split-param')
 
-            switch (selectedValue) {
-                case "Words":
-                    split_param.disabled = false;
-                    document.querySelector("label[for='split-param']").textContent = "# Words";
-                    split_param.type = 'number';
-                    split_param.value = 7;
-                    split_param.min = 1;
-                    break;
-                case "Tokens":
-                    split_param.disabled = false;
-                    document.querySelector("label[for='split-param']").textContent = "# Tokens";
-                    split_param.type = 'number';
-                    split_param.value = 15;
-                    split_param.min = 1;
-                    split_param.max = 512;
-                    console.groupEnd();
-                    break;
-                case "Chars":
-                    split_param.disabled = false;
-                    document.querySelector("label[for='split-param']").textContent = "# Chars";
-                    split_param.type = 'number';
-                    split_param.value = 40;
-                    split_param.min = 1;
-                    break;
-                case "Regex":
-                    split_param.disabled = false;
-                    document.querySelector("label[for='split-param']").textContent = "Regex";
-                    split_param.type = 'text';
-                    split_param.value = "[.,]\\s";
-                    break;
-                default:
-                    split_param.value = null;
-                    split_param.disabled = true;
-                    document.querySelector("label[for='split-param']").textContent = "";
-                    split_param.placeholder = "";
-            }
-        });
-    });
-
-}
-
-async function main() {
-    setup();
-    await loadSemantic();
-    activateSubmitButton();
-
-}
-main();
 
 function nextMarker() {
     if (selectedIndex === -1) {
@@ -412,6 +358,65 @@ window.onload = async function () {
         lineWrapping: true,
     });
 
+
+    document.getElementById('split-type').addEventListener('change', function() {
+        // Get the selected option value
+        var selectedValue = this.value;
+        const split_param = document.getElementById('split-param')
+
+        switch (selectedValue) {
+            case "Words":
+                split_param.disabled = false;
+                document.querySelector("label[for='split-param']").textContent = "# Words";
+                split_param.type = 'number';
+                split_param.value = 7;
+                split_param.min = 1;
+                break;
+            case "Tokens":
+                split_param.disabled = false;
+                document.querySelector("label[for='split-param']").textContent = "# Tokens";
+                split_param.type = 'number';
+                split_param.value = 15;
+                split_param.min = 1;
+                split_param.max = 512;
+                console.groupEnd();
+                break;
+            case "Chars":
+                split_param.disabled = false;
+                document.querySelector("label[for='split-param']").textContent = "# Chars";
+                split_param.type = 'number';
+                split_param.value = 40;
+                split_param.min = 1;
+                break;
+            case "Regex":
+                split_param.disabled = false;
+                document.querySelector("label[for='split-param']").textContent = "Regex";
+                split_param.type = 'text';
+                split_param.value = "[.,]\\s";
+                break;
+            default:
+                split_param.value = null;
+                split_param.disabled = true;
+                document.querySelector("label[for='split-param']").textContent = "";
+                split_param.placeholder = "";
+        }
+    });
+
+
+    var accordionButton = document.querySelector('.accordion-button');
+
+    accordionButton.addEventListener('click', function() {
+        var isExpanded = accordionButton.getAttribute('aria-expanded') === 'true';
+
+        if(isExpanded) {
+            accordionButton.textContent = 'Settings ↡';
+            console.dir(accordionButton);
+        } else {
+            accordionButton.textContent = 'Settings ↠';
+        }
+    });
+
+
     await loadSemantic();
     activateSubmitButton();
 
@@ -424,5 +429,8 @@ window.onload = async function () {
         event.preventDefault();
         prevMarker();
     });
+
+
+
 };
 
